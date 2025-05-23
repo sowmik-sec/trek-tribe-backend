@@ -2,6 +2,7 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { StatusCodes } from 'http-status-codes';
+import router from './app/routes';
 const app: Application = express();
 
 app.use(cors({ origin: ['http://localhost:3000'], credentials: true }));
@@ -14,5 +15,7 @@ app.get('/test', (req: Request, res: Response) => {
     message: 'Server working',
   });
 });
+
+app.use('/api/v1', router);
 
 export default app;
