@@ -215,6 +215,7 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
@@ -225,7 +226,7 @@ const config = {
   },
   "inlineSchema": "generator client {\n  provider = \"prisma-client-js\"\n  output   = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel User {\n  id                 String               @id @default(uuid())\n  name               String\n  email              String               @unique\n  password           String\n  role               UserRole             @default(USER)\n  status             UserStatus           @default(ACTIVE)\n  createdAt          DateTime             @default(now())\n  updatedAt          DateTime             @updatedAt\n  profile            Profile?\n  trip               Trip[]\n  travelBuddyRequest TravelBuddyRequest[]\n\n  @@map(\"users\")\n}\n\nmodel Profile {\n  id           String   @id @default(uuid())\n  userId       String   @unique\n  bio          String?\n  age          Int?\n  profilePhoto String?\n  createdAt    DateTime @default(now())\n  updatedAt    DateTime @updatedAt\n  user         User     @relation(fields: [userId], references: [id])\n\n  @@map(\"profiles\")\n}\n\nmodel Trip {\n  id                 String               @id @default(uuid())\n  userId             String\n  destination        String\n  startDate          DateTime\n  endDate            DateTime\n  budget             Decimal\n  type               String\n  description        String\n  itinerary          String?\n  photos             String[]\n  activities         String[]\n  createdAt          DateTime             @default(now())\n  updatedAt          DateTime             @updatedAt\n  user               User                 @relation(fields: [userId], references: [id])\n  travelBuddyRequest TravelBuddyRequest[]\n\n  @@map(\"trips\")\n}\n\nmodel TravelBuddyRequest {\n  id        String        @id @default(uuid())\n  tripId    String\n  userId    String\n  status    RequestStatus @default(PENDING)\n  message   String?\n  createdAt DateTime      @default(now())\n  updatedAt DateTime      @updatedAt\n  trip      Trip          @relation(fields: [tripId], references: [id])\n  user      User          @relation(fields: [userId], references: [id])\n\n  @@map(\"travelBuddyRequests\")\n}\n\nenum UserRole {\n  USER\n  ADMIN\n}\n\nenum UserStatus {\n  ACTIVE\n  INACTIVE\n}\n\nenum RequestStatus {\n  PENDING\n  APPROVED\n  REJECTED\n}\n",
   "inlineSchemaHash": "ae7d57cbdabe06016e1904c02296425a9694baab4e643f865a108285d7aa1780",
-  "copyEngine": false
+  "copyEngine": true
 }
 
 const fs = require('fs')
@@ -262,3 +263,9 @@ const PrismaClient = getPrismaClient(config)
 exports.PrismaClient = PrismaClient
 Object.assign(exports, Prisma)
 
+// file annotations for bundling tools to include these files
+path.join(__dirname, "libquery_engine-rhel-openssl-3.0.x.so.node");
+path.join(process.cwd(), "generated/prisma/libquery_engine-rhel-openssl-3.0.x.so.node")
+// file annotations for bundling tools to include these files
+path.join(__dirname, "schema.prisma");
+path.join(process.cwd(), "generated/prisma/schema.prisma")
