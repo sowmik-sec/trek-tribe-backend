@@ -14,6 +14,7 @@ import { jwtHelpers } from '../../../helpers/jwtHelpers';
 import config from '../../../config';
 import { JwtPayload, Secret } from 'jsonwebtoken';
 import { hashedPassword } from '../user/user.utils';
+import { sendEmail } from './sendResetMail';
 
 const loginUser = async (payload: ILoginUser): Promise<ILoginUserResponse> => {
   const { email, password } = payload;
@@ -105,8 +106,36 @@ const changePassword = async (user: JwtPayload | null, payload: IChangePassword)
   });
 };
 
+const forgotPassword = async (email: string) => {
+  const isUserExist = await prisma.user.findUnique({
+    where: {
+      email,
+      status: UserStatus.ACTIVE,
+    },
+  });
+  if (!isUserExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User does not exist');
+  }
+  const passResetToken = await jwtHelpers.createPasswordResetToken({
+    id: isUserExist.id,
+  });
+  const resetLink: string = config.reset_link + `?id=${isUserExist.id}&token=${passResetToken}`;
+
+  await sendEmail(
+    email,
+    `
+      <div>
+        <p>Dear ${isUserExist.role},</p>
+        <p>Your password reset link: <a href=${resetLink}><button>RESET PASSWORD<button/></a></p>
+        <p>Thank you</p>
+      </div>
+  `
+  );
+};
+
 export const AuthServices = {
   loginUser,
   refreshToken,
   changePassword,
+  forgotPassword,
 };
