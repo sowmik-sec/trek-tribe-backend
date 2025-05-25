@@ -1,13 +1,19 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { UserStatus } from '@prisma/client';
 import prisma from '../../../shared/prisma';
-import { ILoginUser, ILoginUserResponse, IRefreshTokenResponse } from './auth.interface';
+import {
+  IChangePassword,
+  ILoginUser,
+  ILoginUserResponse,
+  IRefreshTokenResponse,
+} from './auth.interface';
 import ApiError from '../../../errors/ApiError';
 import { StatusCodes } from 'http-status-codes';
 import { AuthUtils } from './auth.utils';
 import { jwtHelpers } from '../../../helpers/jwtHelpers';
 import config from '../../../config';
-import { Secret } from 'jsonwebtoken';
+import { JwtPayload, Secret } from 'jsonwebtoken';
+import { hashedPassword } from '../user/user.utils';
 
 const loginUser = async (payload: ILoginUser): Promise<ILoginUserResponse> => {
   const { email, password } = payload;
@@ -71,7 +77,36 @@ const refreshToken = async (token: string): Promise<IRefreshTokenResponse> => {
   };
 };
 
+const changePassword = async (user: JwtPayload | null, payload: IChangePassword): Promise<void> => {
+  const { oldPassword, newPassword } = payload;
+  const isUserExist = await prisma.user.findUnique({
+    where: {
+      id: user?.userId,
+      status: UserStatus.ACTIVE,
+    },
+  });
+  if (!isUserExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User does not exist!');
+  }
+  if (
+    isUserExist.password &&
+    !(await AuthUtils.comparePasswords(oldPassword, isUserExist.password))
+  ) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, 'Old Password is incorrect');
+  }
+  const hashPassword = await hashedPassword(newPassword);
+  await prisma.user.update({
+    where: {
+      id: isUserExist.id,
+    },
+    data: {
+      password: hashPassword,
+    },
+  });
+};
+
 export const AuthServices = {
   loginUser,
   refreshToken,
+  changePassword,
 };
