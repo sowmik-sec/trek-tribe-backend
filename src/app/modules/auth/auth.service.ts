@@ -15,6 +15,7 @@ import config from '../../../config';
 import { JwtPayload, Secret } from 'jsonwebtoken';
 import { hashedPassword } from '../user/user.utils';
 import { sendEmail } from './sendResetMail';
+import bcrypt from 'bcrypt';
 
 const loginUser = async (payload: ILoginUser): Promise<ILoginUserResponse> => {
   const { email, password } = payload;
@@ -133,9 +134,35 @@ const forgotPassword = async (email: string) => {
   );
 };
 
+const resetPassword = async (payload: { email: string; newPassword: string }, token: string) => {
+  const isUserExist = await prisma.user.findUnique({
+    where: {
+      email: payload.email,
+      status: UserStatus.ACTIVE,
+    },
+  });
+  if (!isUserExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User does not exist');
+  }
+  const isVerified = jwtHelpers.verifyToken(token, config.jwt.jwt_secret as Secret);
+  if (!isVerified) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, 'You are not authorized');
+  }
+  const password = await bcrypt.hash(payload.newPassword, Number(config.bcrypt_salt_rounds));
+  await prisma.user.update({
+    where: {
+      email: payload.email,
+    },
+    data: {
+      password,
+    },
+  });
+};
+
 export const AuthServices = {
   loginUser,
   refreshToken,
   changePassword,
   forgotPassword,
+  resetPassword,
 };
