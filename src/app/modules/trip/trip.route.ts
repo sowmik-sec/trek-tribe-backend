@@ -16,4 +16,6 @@ router.post(
   }
 );
 
+router.get('/:id', auth(UserRole.ADMIN, UserRole.USER), TripControllers.getTrip);
+
 export const TripRoutes = router;

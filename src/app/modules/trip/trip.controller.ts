@@ -13,7 +13,17 @@ const createTrip = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const getTrip = catchAsync(async (req: Request, res: Response) => {
+  const result = await TripServices.getSingleTripFromDB(req.params.id);
+  sendResponse(res, {
+    statusCode: StatusCodes.CREATED,
+    success: true,
+    message: 'Trip retrieved successfully',
+    data: result,
+  });
+});
 
 export const TripControllers = {
   createTrip,
+  getTrip,
 };
