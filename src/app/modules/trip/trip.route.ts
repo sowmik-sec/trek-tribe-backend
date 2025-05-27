@@ -29,4 +29,6 @@ router.put(
   }
 );
 
+router.delete('/:id', auth(UserRole.ADMIN, UserRole.USER), TripControllers.deleteTrip);
+
 export const TripRoutes = router;

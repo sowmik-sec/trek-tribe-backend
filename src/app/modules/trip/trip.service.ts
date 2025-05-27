@@ -8,6 +8,9 @@ import { paginationHelper } from '../../../helpers/paginationHelper';
 import { TPaginationOptions } from '../../../interfaces/pagination';
 import { tripSearchableFields } from './trip.constant';
 import { TPhoto } from './trip.interface';
+import { IAuthUser } from '../../../interfaces/common';
+import { StatusCodes } from 'http-status-codes';
+import ApiError from '../../../errors/ApiError';
 
 const createTripIntoDB = async (req: Request) => {
   const file = req.file as IUploadFile;
@@ -160,9 +163,38 @@ const updateTripIntoDB = async (
   return updatedTrip;
 };
 
+const deleteTripFromDB = async (tripId: string, user: IAuthUser): Promise<Trip> => {
+  // Step 1: Find the trip
+  const trip = await prisma.trip.findUniqueOrThrow({
+    where: { id: tripId },
+  });
+
+  // Step 2: Authorization — Only the owner or an ADMIN can delete
+  const isOwner = trip.userId === user?.userId;
+  const isAdmin = user?.role === 'ADMIN';
+
+  if (!isOwner && !isAdmin) {
+    throw new ApiError(StatusCodes.FORBIDDEN, 'You are not authorized to delete this trip');
+  }
+
+  // Step 3: Transactionally delete related data
+  const deletedTrip = await prisma.$transaction(async (tx) => {
+    await tx.travelBuddyRequest.deleteMany({
+      where: { tripId },
+    });
+
+    return await tx.trip.delete({
+      where: { id: tripId },
+    });
+  });
+
+  return deletedTrip;
+};
+
 export const TripServices = {
   createTripIntoDB,
   getSingleTripFromDB,
   getAllTripsFromDB,
   updateTripIntoDB,
+  deleteTripFromDB,
 };

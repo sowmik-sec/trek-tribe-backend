@@ -5,6 +5,7 @@ import sendResponse from '../../../shared/sendResponse';
 import { StatusCodes } from 'http-status-codes';
 import pick from '../../../shared/pick';
 import { tripFilterableFields } from './trip.constant';
+import { IAuthUser } from '../../../interfaces/common';
 
 const createTrip = catchAsync(async (req: Request, res: Response) => {
   const result = await TripServices.createTripIntoDB(req);
@@ -46,9 +47,20 @@ const updateTrip = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const deleteTrip = catchAsync(async (req: Request, res: Response) => {
+  const result = await TripServices.deleteTripFromDB(req.params.id, req.user as IAuthUser);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Trip deleted successfully',
+    data: result,
+  });
+});
+
 export const TripControllers = {
   createTrip,
   getSingleTrip,
   getAllTrips,
   updateTrip,
+  deleteTrip,
 };
