@@ -36,8 +36,19 @@ const getAllTrips = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updateTrip = catchAsync(async (req: Request, res: Response) => {
+  const result = await TripServices.updateTripIntoDB(req.body, req.params.id, req);
+  sendResponse(res, {
+    statusCode: StatusCodes.CREATED,
+    success: true,
+    message: 'Trip updated successfully',
+    data: result,
+  });
+});
+
 export const TripControllers = {
   createTrip,
   getSingleTrip,
   getAllTrips,
+  updateTrip,
 };

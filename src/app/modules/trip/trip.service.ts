@@ -7,6 +7,7 @@ import { FileUploadHelper } from '../../../helpers/fileUploadHelper';
 import { paginationHelper } from '../../../helpers/paginationHelper';
 import { TPaginationOptions } from '../../../interfaces/pagination';
 import { tripSearchableFields } from './trip.constant';
+import { TPhoto } from './trip.interface';
 
 const createTripIntoDB = async (req: Request) => {
   const file = req.file as IUploadFile;
@@ -112,9 +113,56 @@ const getAllTripsFromDB = async (params: any, options: TPaginationOptions) => {
     data: result,
   };
 };
+const updateTripIntoDB = async (
+  payload: Partial<Omit<Trip, 'photos'>> & { photos?: TPhoto[] },
+  tripId: string,
+  req: Request
+): Promise<Trip> => {
+  // Step 1: Ensure trip exists and belongs to user
+  const existingTrip = await prisma.trip.findUniqueOrThrow({
+    where: {
+      id: tripId,
+      userId: req.user?.userId,
+    },
+  });
+
+  const file = req.file as IUploadFile;
+  const existingPhotos = (existingTrip.photos || []) as TPhoto[];
+
+  // Step 2: Filter out deleted photos
+  const updatedPhotos = existingPhotos.filter(
+    (photo) => !payload.photos?.some((p) => p.url === photo.url && p.isDeleted)
+  );
+
+  // Step 3: Add new uploaded photo (if any)
+  if (file) {
+    const uploadedImage = await FileUploadHelper.uploadToCloudinary(file);
+    if (uploadedImage?.secure_url) {
+      updatedPhotos.push({
+        url: uploadedImage.secure_url,
+        isDeleted: false,
+      });
+    }
+  }
+
+  // Step 4: Prepare and send update
+  const updatedData: Prisma.TripUpdateInput = {
+    ...payload,
+    photos: updatedPhotos,
+    updatedAt: new Date(),
+  };
+
+  const updatedTrip = await prisma.trip.update({
+    where: { id: tripId },
+    data: updatedData,
+  });
+
+  return updatedTrip;
+};
 
 export const TripServices = {
   createTripIntoDB,
   getSingleTripFromDB,
   getAllTripsFromDB,
+  updateTripIntoDB,
 };
