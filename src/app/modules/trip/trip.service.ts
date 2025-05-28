@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request } from 'express';
 import prisma from '../../../shared/prisma';
-import { Prisma, Trip } from '@prisma/client';
+import { Prisma, TravelBuddyRequest, Trip } from '@prisma/client';
 import { IUploadFile } from '../../../interfaces/file';
 import { FileUploadHelper } from '../../../helpers/fileUploadHelper';
 import { paginationHelper } from '../../../helpers/paginationHelper';
@@ -191,10 +191,34 @@ const deleteTripFromDB = async (tripId: string, user: IAuthUser): Promise<Trip> 
   return deletedTrip;
 };
 
+const sendTravelBuddyRequest = async (
+  tripId: string,
+  payload: Partial<TravelBuddyRequest>,
+  user: IAuthUser
+) => {
+  const trip = await prisma.trip.findUniqueOrThrow({
+    where: {
+      id: tripId,
+    },
+  });
+  if (trip.userId === user?.userId) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'You are not allowed to request');
+  }
+  const result = await prisma.travelBuddyRequest.create({
+    data: {
+      tripId,
+      message: payload.message,
+      userId: user?.userId as string,
+    },
+  });
+  return result;
+};
+
 export const TripServices = {
   createTripIntoDB,
   getSingleTripFromDB,
   getAllTripsFromDB,
   updateTripIntoDB,
   deleteTripFromDB,
+  sendTravelBuddyRequest,
 };

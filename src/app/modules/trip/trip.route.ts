@@ -4,6 +4,7 @@ import { FileUploadHelper } from '../../../helpers/fileUploadHelper';
 import { TripValidations } from './trip.validation';
 import auth from '../../middlewares/auth';
 import { UserRole } from '@prisma/client';
+import validateRequest from '../../middlewares/validateRequest';
 const router = express.Router();
 
 router.post(
@@ -30,5 +31,12 @@ router.put(
 );
 
 router.delete('/:id', auth(UserRole.ADMIN, UserRole.USER), TripControllers.deleteTrip);
+
+router.post(
+  '/:id/request',
+  auth(UserRole.ADMIN, UserRole.USER),
+  validateRequest(TripValidations.createSendTravelBuddyRequestSchema),
+  TripControllers.sendTravelBuddyRequest
+);
 
 export const TripRoutes = router;

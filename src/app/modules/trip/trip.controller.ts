@@ -57,10 +57,25 @@ const deleteTrip = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const sendTravelBuddyRequest = catchAsync(async (req: Request, res: Response) => {
+  const result = await TripServices.sendTravelBuddyRequest(
+    req.params.id,
+    req.body,
+    req.user as IAuthUser
+  );
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Travel buddy request sent successfully',
+    data: result,
+  });
+});
+
 export const TripControllers = {
   createTrip,
   getSingleTrip,
   getAllTrips,
   updateTrip,
   deleteTrip,
+  sendTravelBuddyRequest,
 };

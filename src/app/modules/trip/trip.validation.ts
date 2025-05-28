@@ -31,7 +31,14 @@ const updateTripZodSchema = z.object({
   activities: z.array(z.string()).optional(),
 });
 
+const createSendTravelBuddyRequestSchema = z.object({
+  body: z.object({
+    message: z.string().optional(),
+  }),
+});
+
 export const TripValidations = {
   createTripZodSchema,
   updateTripZodSchema,
+  createSendTravelBuddyRequestSchema,
 };
