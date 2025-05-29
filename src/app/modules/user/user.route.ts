@@ -6,6 +6,8 @@ import auth from '../../middlewares/auth';
 import { UserRole } from '@prisma/client';
 const router = express.Router();
 
+router.get('/', auth(UserRole.USER, UserRole.ADMIN), UserControllers.getAllUsers);
+
 router.post(
   '/register',
   FileUploadHelper.upload.single('file'),
