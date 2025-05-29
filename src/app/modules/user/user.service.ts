@@ -43,6 +43,52 @@ const createUserIntoDB = async (req: Request) => {
   return result;
 };
 
+const updateUserIntoDB = async (req: Request) => {
+  await prisma.user.findUniqueOrThrow({
+    where: {
+      id: req.user.userId,
+    },
+  });
+  const file = req.file as IUploadFile;
+  if (file) {
+    const uploadProfileImage = await FileUploadHelper.uploadToCloudinary(file);
+    req.body.profilePhoto = uploadProfileImage?.secure_url;
+  }
+
+  const result = await prisma.$transaction(async (tc) => {
+    const updateUser = await tc.user.update({
+      where: {
+        id: req.user.userId,
+      },
+      data: {
+        name: req.body.name,
+        email: req.body.email,
+      },
+    });
+    const updateProfile = await tc.profile.update({
+      where: {
+        userId: req.user.userId,
+      },
+      data: {
+        bio: req.body.profile.bio,
+        age: req.body.profile.age,
+        profilePhoto: req.body.profilePhoto,
+      },
+    });
+    return {
+      name: updateUser.name,
+      email: updateUser.email,
+      age: updateProfile.age,
+      bio: updateProfile.bio,
+      profilePhoto: updateProfile.profilePhoto,
+      createdAt: updateProfile.createdAt,
+      updatedAt: updateProfile.updatedAt,
+    };
+  });
+  return result;
+};
+
 export const UserServices = {
   createUserIntoDB,
+  updateUserIntoDB,
 };
