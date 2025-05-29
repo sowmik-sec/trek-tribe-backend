@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request } from 'express';
 import prisma from '../../../shared/prisma';
@@ -61,58 +62,119 @@ const getAllTripsFromDB = async (params: any, options: TPaginationOptions) => {
 
   const andConditions: Prisma.TripWhereInput[] = [];
 
+  // Search term logic (add mode: 'insensitive' for other text fields if needed)
   if (searchTerm) {
     andConditions.push({
-      OR: tripSearchableFields.map((field) => ({
-        [field]: {
-          contains: searchTerm,
-        },
-      })),
+      OR: tripSearchableFields.map((field) => {
+        if (field === 'activities') {
+          return {
+            activities: {
+              // Checks if the searchTerm is an element in the activities array
+              has: searchTerm, // 'has' is often preferred for array element checks
+            },
+          };
+        }
+        // For other text fields like destination, description, type
+        return {
+          [field]: {
+            contains: searchTerm,
+            mode: 'insensitive', // Makes 'contains' case-insensitive for regular string fields
+          },
+        };
+      }),
     });
   }
+
+  // Specific filters from filteredData
   if (Object.keys(filteredData).length > 0) {
-    andConditions.push({
-      AND: Object.keys(filteredData).map((key) => ({
-        [key]: {
-          equals: (filteredData as any)[key],
-        },
-      })),
-    });
+    const specificFilters: Prisma.TripWhereInput[] = [];
+    for (const key in filteredData) {
+      if (Object.prototype.hasOwnProperty.call(filteredData, key)) {
+        const value = (filteredData as any)[key];
+
+        if (key === 'activities') {
+          if (typeof value === 'string' && value.trim() !== '') {
+            // Find trips where the activities array contains this single string value
+            specificFilters.push({ activities: { has: value } });
+          } else if (
+            Array.isArray(value) &&
+            value.length > 0 &&
+            value.every((item) => typeof item === 'string')
+          ) {
+            // If an array is passed, you might want to find trips that have ALL activities (hasEvery)
+            // or ANY of the activities (hasSome)
+            specificFilters.push({ activities: { hasEvery: value } }); // Example: has all
+            // Or: specificFilters.push({ activities: { hasSome: value } }); // Example: has any
+          } else {
+            console.warn(
+              `'activities' filter value is not a valid string or array of strings:`,
+              value
+            );
+          }
+        } else if (key === 'destination' || key === 'type' || key === 'description') {
+          specificFilters.push({
+            [key]: { contains: String(value), mode: 'insensitive' },
+          });
+        } else if (key === 'budget') {
+          const numericValue = parseFloat(value);
+          if (!isNaN(numericValue)) {
+            specificFilters.push({ budget: { equals: numericValue } });
+          } else if (typeof value === 'object' && value !== null) {
+            // For range: {min: 100, max: 500}
+            const budgetRange: { gte?: number; lte?: number } = {};
+            if ((value as any).min !== undefined) budgetRange.gte = parseFloat((value as any).min);
+            if ((value as any).max !== undefined) budgetRange.lte = parseFloat((value as any).max);
+            if (Object.keys(budgetRange).length > 0 && !Object.values(budgetRange).some(isNaN)) {
+              specificFilters.push({ budget: budgetRange });
+            } else {
+              console.warn(`Budget range filter is not valid:`, value);
+            }
+          } else {
+            console.warn(`Budget filter value is not a processable number or range:`, value);
+          }
+        } else if (key === 'startDate' || key === 'endDate') {
+          try {
+            const dateValue = new Date(value);
+            // This will filter for trips where the date field exactly matches the start of the given date.
+            // For date ranges (e.g., trips starting AFTER a date, or BEFORE a date), you'd use gte/lte.
+            specificFilters.push({ [key]: { equals: dateValue } });
+          } catch (e) {
+            console.warn(`Invalid date format for ${key}:`, value);
+          }
+        } else if (key === 'userId') {
+          // If you want to filter by the user who created the trip
+          specificFilters.push({ userId: { equals: String(value) } });
+        }
+        // Add other specific field handlers as needed
+      }
+    }
+    if (specificFilters.length > 0) {
+      andConditions.push({ AND: specificFilters });
+    }
   }
+
   const whereConditions: Prisma.TripWhereInput =
     andConditions.length > 0 ? { AND: andConditions } : {};
+
+  // ... rest of your function (findMany, count, return)
   const result = await prisma.trip.findMany({
     where: whereConditions,
     skip,
     take: limit,
     orderBy:
       options.sortBy && options.sortOrder
-        ? {
-            [options.sortBy]: options.sortOrder,
-          }
-        : {
-            createdAt: 'desc',
-          },
+        ? { [options.sortBy]: options.sortOrder }
+        : { createdAt: 'desc' },
     include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
+      user: { select: { id: true, name: true, email: true } },
       travelBuddyRequest: true,
     },
   });
-  const total = await prisma.trip.count({
-    where: whereConditions,
-  });
+
+  const total = await prisma.trip.count({ where: whereConditions });
+
   return {
-    meta: {
-      page,
-      limit,
-      total,
-    },
+    meta: { page, limit, total },
     data: result,
   };
 };
