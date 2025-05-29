@@ -17,7 +17,22 @@ const getPotentialTravelBuddies = catchAsync(async (req: Request, res: Response)
     data: result,
   });
 });
+const responseToTravelBuddyRequest = catchAsync(async (req: Request, res: Response) => {
+  const result = await TravelBuddyRequestServices.responseToTravelBuddyRequest(
+    req.params.tripId,
+    req.params.buddyId,
+    req.body.status,
+    req.user as IAuthUser
+  );
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Travel buddy requests updated successfully',
+    data: result,
+  });
+});
 
 export const TravelBuddyRequestControllers = {
   getPotentialTravelBuddies,
+  responseToTravelBuddyRequest,
 };
