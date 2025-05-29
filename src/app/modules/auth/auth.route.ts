@@ -6,6 +6,8 @@ import auth from '../../middlewares/auth';
 import { UserRole } from '@prisma/client';
 const router = express.Router();
 
+router.get('/profile', auth(UserRole.USER, UserRole.ADMIN), AuthControllers.getUserProfile);
+
 router.post('/login', validateRequest(AuthValidations.loginZodSchema), AuthControllers.loginUser);
 
 router.post(

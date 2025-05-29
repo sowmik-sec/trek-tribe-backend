@@ -4,6 +4,7 @@ import { AuthServices } from './auth.service';
 import config from '../../../config';
 import sendResponse from '../../../shared/sendResponse';
 import { ILoginUserResponse, IRefreshTokenResponse } from './auth.interface';
+import { IAuthUser } from '../../../interfaces/common';
 
 const loginUser = catchAsync(async (req: Request, res: Response) => {
   const result = await AuthServices.loginUser(req.body);
@@ -75,6 +76,16 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
     },
   });
 });
+const getUserProfile = catchAsync(async (req: Request, res: Response) => {
+  const result = await AuthServices.getUserProfile(req.user as IAuthUser);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'User profile retrieved successfully!',
+    data: result,
+  });
+});
 
 export const AuthControllers = {
   loginUser,
@@ -82,4 +93,5 @@ export const AuthControllers = {
   changePassword,
   forgotPassword,
   resetPassword,
+  getUserProfile,
 };

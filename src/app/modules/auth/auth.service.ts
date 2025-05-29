@@ -16,6 +16,7 @@ import { JwtPayload, Secret } from 'jsonwebtoken';
 import { hashedPassword } from '../user/user.utils';
 import { sendEmail } from './sendResetMail';
 import bcrypt from 'bcrypt';
+import { IAuthUser } from '../../../interfaces/common';
 
 const loginUser = async (payload: ILoginUser): Promise<ILoginUserResponse> => {
   const { email, password } = payload;
@@ -159,10 +160,30 @@ const resetPassword = async (payload: { email: string; newPassword: string }, to
   });
 };
 
+const getUserProfile = async (user: IAuthUser) => {
+  const result = await prisma.user.findUniqueOrThrow({
+    where: {
+      id: user?.userId,
+      status: 'ACTIVE',
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      createdAt: true,
+      updatedAt: true,
+      profile: true,
+    },
+  });
+  return result;
+};
+
 export const AuthServices = {
   loginUser,
   refreshToken,
   changePassword,
   forgotPassword,
   resetPassword,
+  getUserProfile,
 };
