@@ -68,6 +68,7 @@ model TravelBuddyRequest {
   trip      Trip          @relation(fields: [tripId], references: [id])
   user      User          @relation(fields: [userId], references: [id])
 
+  @@unique([tripId, userId])
   @@map("travelBuddyRequests")
 }
 
