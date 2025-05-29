@@ -6,7 +6,7 @@ import auth from '../../middlewares/auth';
 import { UserRole } from '@prisma/client';
 const router = express.Router();
 
-router.get('/', auth(UserRole.USER, UserRole.ADMIN), UserControllers.getAllUsers);
+router.get('/', auth(UserRole.ADMIN), UserControllers.getAllUsers);
 
 router.post(
   '/register',
@@ -25,5 +25,7 @@ router.post(
     return UserControllers.updateUser(req, res, next);
   }
 );
+
+router.patch('/:id', auth(UserRole.ADMIN), UserControllers.updateRoleOrActiveStatus);
 
 export const UserRoutes = router;

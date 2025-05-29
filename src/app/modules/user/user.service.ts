@@ -4,7 +4,7 @@ import { IUploadFile } from '../../../interfaces/file';
 import { FileUploadHelper } from '../../../helpers/fileUploadHelper';
 import { hashedPassword } from './user.utils';
 import prisma from '../../../shared/prisma';
-import { Prisma, UserRole } from '@prisma/client';
+import { Prisma, User, UserRole } from '@prisma/client';
 import { TPaginationOptions } from '../../../interfaces/pagination';
 import { paginationHelper } from '../../../helpers/paginationHelper';
 import { userSearchableFields } from './user.constant';
@@ -238,8 +238,28 @@ const getUsersFromDB = async (params: any, options: TPaginationOptions) => {
   };
 };
 
+const updateRoleOrActiveStatusIntoDB = async (userId: string, payload: Partial<User>) => {
+  await prisma.user.findUniqueOrThrow({
+    where: {
+      id: userId,
+    },
+  });
+  const { role, status } = payload;
+  const result = await prisma.user.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      role,
+      status,
+    },
+  });
+  return result;
+};
+
 export const UserServices = {
   createUserIntoDB,
   updateUserIntoDB,
   getUsersFromDB,
+  updateRoleOrActiveStatusIntoDB,
 };
