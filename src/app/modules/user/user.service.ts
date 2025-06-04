@@ -34,6 +34,7 @@ const createUserIntoDB = async (req: Request) => {
       },
     });
     return {
+      id: newUser.id,
       name: newUser.name,
       email: newUser.email,
       role: newUser.role,
